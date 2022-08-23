@@ -248,8 +248,10 @@ class WDF:
     def _decode(self):
         """Decode a single WDF block's header and payload from the stream."""
         self.decoders[self.state] = decoder = Block[self.state].value
+        ctx = {}
+        metadata = self.blocks["WDF1"]
         if self.state in ("XLST", "YLST"):
-            self.blocks[self.state] = decoder.parse_stream(
-                self.stream, size=self.blocks["WDF1"][self.state])
-        else:
-            self.blocks[self.state] = decoder.parse_stream(self.stream)
+            ctx["size"] = metadata[self.state]
+        elif self.state == "DATA":
+            ctx["size"] = metadata.count * metadata.points
+        self.blocks[self.state] = decoder.parse_stream(self.stream, **ctx)
