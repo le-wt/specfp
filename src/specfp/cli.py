@@ -15,5 +15,4 @@ def main():
 @click.argument("urlpath")
 def convert(urlpath: str):
     """Convert a WDF spectroscopy file."""
-    reader = decoders.wdf.WDF(urlpath)
-    reader.decode()
+    print(decoders.load(urlpath))
