@@ -11,12 +11,6 @@ import construct
 Unused = construct.Computed(construct.Byte[this.header.size - this._sizing])
 
 
-AXIS = construct.Struct(
-    "type" / construct.Int32ul,
-    "unit" / construct.Int32ul,
-    "domain" / construct.Float32l)
-
-
 class FiletimeAdapter(construct.Adapter):
     """Adapt between Microsoft Windows File-time and UTC datetime."""
 
@@ -110,11 +104,15 @@ class Block(enum.Enum):
     DATA = Default(b"DATA", payload="spectra", type=construct.Float32l)
     YLST = construct.Struct(
         "header"            / Header(b"YLST"),
-        "axis"              / AXIS,
+        "type"              / construct.Int32ul,
+        "unit"              / construct.Int32ul,
+        "domain"            / construct.Float32l,
         "unused"            / Unused)
     XLST = construct.Struct(
         "header"            / Header(b"XLST"),
-        "axis"              / AXIS,
+        "type"              / construct.Int32ul,
+        "unit"              / construct.Int32ul,
+        "domain"            / construct.Float32l,
         "unused"            / Unused)
     ORGN = Default(b"ORGN") * "Origin"
     TEXT = Default(b"TEXT") * "Comment"
