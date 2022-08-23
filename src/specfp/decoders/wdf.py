@@ -43,7 +43,7 @@ def Header(magic: bytes | None = None) -> construct.Construct:
         string = construct.Const(magic)
     return construct.Struct(
         "magic" / string,
-        construct.Byte[4 - string.sizeof()],
+        "padding" / construct.Byte[4 - string.sizeof()],
         "uid" / construct.Int32ul,
         "size" / construct.Int64ul)
 
