@@ -81,8 +81,8 @@ class Block(enum.Enum):
         "capacity"          / construct.Int64ul,
         "count"             / construct.Int64ul,
         "accumulation"      / construct.Int32ul,
-        "y_length"          / construct.Int32ul,
-        "x_length"          / construct.Int32ul,
+        "YLST"              / construct.Int32ul * "block length",
+        "XLST"              / construct.Int32ul * "block length",
         "origin_length"     / construct.Int32ul,
         "application"       / construct.PaddedString(0x18, "ascii"),
         "major_version"     / construct.Int16ul,
@@ -106,13 +106,13 @@ class Block(enum.Enum):
         "header"            / Header(b"YLST"),
         "type"              / construct.Int32ul,
         "unit"              / construct.Int32ul,
-        "domain"            / construct.Float32l,
+        "domain"            / construct.Float32l[this._.size],
         "unused"            / Unused)
     XLST = construct.Struct(
         "header"            / Header(b"XLST"),
         "type"              / construct.Int32ul,
         "unit"              / construct.Int32ul,
-        "domain"            / construct.Float32l,
+        "domain"            / construct.Float32l[this._.size],
         "unused"            / Unused)
     ORGN = Default(b"ORGN") * "Origin"
     TEXT = Default(b"TEXT") * "Comment"
