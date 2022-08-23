@@ -279,7 +279,8 @@ class WDF:
         block_size = block.header.size
         header_size = self.decoders[self.state].header.sizeof()
         payload_size = block_size - header_size
-        logger.info(f"Decoded block: {self.state}(payload = {payload_size}/{block_size} bytes)")
+        logger.info(f"Decoded block: {self.state}"
+                    f"(payload = {payload_size}/{block_size} bytes)")
 
     def _log_identified(self):
         logger.success(f"Identified block: {next(reversed(self.blocks))}")
