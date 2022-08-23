@@ -46,3 +46,18 @@ class TestWDF:
                 break
             else:
                 decoders.wdf.Block[block.header.magic]
+
+    @pytest.mark.integration
+    def test_build(self, wdf_stream):
+        """WDF blocks can be used both to decode and to encode."""
+        decoder = decoders.wdf.Default()
+        binary = wdf_stream.read()
+        wdf_stream.seek(0)
+        blocks = []
+        while True:
+            try:
+                blocks.append(decoder.parse_stream(wdf_stream))
+            except construct.core.StreamError:
+                break
+        encoded = b''.join([decoder.build(block) for block in blocks])
+        assert encoded == binary
