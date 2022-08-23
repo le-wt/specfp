@@ -18,7 +18,7 @@ def load(urlpath: str):
         individual spectrum.
     """
     decoder = wdf.WDF(urlpath)
-    decoder.decode()
+    decoder.decode()  # type: ignore
     df = pd.DataFrame(decoder.spectra, columns=decoder.wavelengths)
     df.index.name = "spectrum"
     return df
