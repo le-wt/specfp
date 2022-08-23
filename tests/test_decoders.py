@@ -32,8 +32,9 @@ class TestWDF:
     @pytest.mark.integration
     def test_DATA(self, wdf_stream):
         """WDF files usually have a DATA block after the WDF1 block."""
-        decoders.wdf.Block.WDF1.value.parse_stream(wdf_stream)
-        decoders.wdf.Block.DATA.value.parse_stream(wdf_stream)
+        block = decoders.wdf.Block.WDF1.value.parse_stream(wdf_stream)
+        size = block.count * block.points
+        decoders.wdf.Block.DATA.value.parse_stream(wdf_stream, size=size)
 
     @pytest.mark.integration
     def test_optional_blocks(self, wdf_stream):
