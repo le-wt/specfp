@@ -2,10 +2,18 @@
 
 import click
 
-from . import __version__
+from . import __version__, decoders
 
 
-@click.command()
+@click.group()
 @click.version_option(version=__version__)
 def main():
     """Spectroscopy band fingerprinting."""
+
+
+@main.command()
+@click.argument("urlpath")
+def convert(urlpath: str):
+    """Convert a WDF spectroscopy file."""
+    reader = decoders.wdf.WDF(urlpath)
+    reader.decode()
