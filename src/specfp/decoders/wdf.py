@@ -11,6 +11,7 @@ import collections
 import construct
 import enum
 import fsspec
+import numpy as np
 import transitions
 
 
@@ -192,6 +193,8 @@ class WDF:
         blocks: an ordered mapping of block name to decoded data.
         decoders: an ordered mapping of block name to the decoding construct.
         states: the available decoding states (registered block decoders).
+        spectra: the decoded spectra points data.
+        wavelengths: the decoded x-axis data.
 
     Examples:
         >>> decoder = WDF('tests/WDF/single.wdf')
@@ -228,6 +231,17 @@ class WDF:
                 dest=block.name,
                 after="decode")
             getattr(self.machine, f"on_enter_{block.name}")("_decode")
+
+    @property
+    def spectra(self) -> np.ndarray:
+        """One or more Raman shift points data (cm-1)."""
+        shape = self.blocks["WDF1"].count, self.blocks["WDF1"].points
+        return np.reshape(self.blocks["DATA"].payload, shape)
+
+    @property
+    def wavelengths(self) -> np.ndarray:
+        """The x-axis of the spectral measurements (nm)."""
+        return np.array(self.blocks["XLST"].domain)
 
     def identified(self, block: str) -> Callable[[], bool]:
         """Return a thunk that checks what the next block is to be decoded.
