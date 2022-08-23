@@ -50,23 +50,27 @@ def Header(magic: bytes | None = None) -> construct.Construct:
 
 def Default(
         magic: bytes | None = None,
-        payload: str = "payload",
         type: construct.Construct = construct.Byte,
+        dynamic: bool = False,
 ) -> construct.Construct:
     """Construct a default block decoder with a length 4 magic string.
 
     Args:
         magic: a length 4 ascii-encoded string that identifies the block type.
-        payload: the name of the payload field in the decoded dict.
         type: the data type encoding of the block's payload.
+        dynamic: set to require passing a "size" parameter at parsing time.
 
     Returns:
         a byte stream decoder.
     """
     header = Header(magic)
+    if dynamic:
+        data = type[this._.size]
+    else:
+        data = type[(this.header.size - header.sizeof()) // type.sizeof()]
     return construct.Struct(
         "header" / header,
-        payload / type[(this.header.size - header.sizeof()) // type.sizeof()],
+        "payload" / data,
         "unused" / Unused)
 
 
@@ -116,7 +120,7 @@ class Block(enum.Enum):
         "padded"            / construct.Int64ul[0x6],
         "third_party"       / construct.Int64ul[0x4],
         "internal_use"      / construct.Int64ul[0x4])
-    DATA = Default(b"DATA", payload="spectra", type=construct.Float32l)
+    DATA = Default(b"DATA", type=construct.Float32l, dynamic=True)
     YLST = construct.Struct(
         "header"            / Header(b"YLST"),
         "type"              / construct.Int32ul,
