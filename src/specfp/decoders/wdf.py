@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from construct import this
+from loguru import logger
 from typing import Callable
 from .. import converters as to
 
@@ -206,6 +207,7 @@ class WDF:
         """Initialize the Finite State Machine controller."""
         self.machine = transitions.Machine(
             states=[block.name for block in Block],
+            after_state_change="_log_decoded",
             auto_transitions=False,
             queued=True,
             model=self)
@@ -221,6 +223,7 @@ class WDF:
                 "decode",
                 prepare="_identify",
                 conditions=self.identified(block.name),
+                before="_log_identified",
                 source=list(self.machine.states),
                 dest=block.name,
                 after="decode")
@@ -255,3 +258,14 @@ class WDF:
         elif self.state == "DATA":
             ctx["size"] = metadata.count * metadata.points
         self.blocks[self.state] = decoder.parse_stream(self.stream, **ctx)
+
+    def _log_decoded(self):
+        """Log the current decoded block information."""
+        block = self.blocks[self.state]
+        block_size = block.header.size
+        header_size = self.decoders[self.state].header.sizeof()
+        payload_size = block_size - header_size
+        logger.info(f"Decoded block: {self.state}(payload = {payload_size}/{block_size} bytes)")
+
+    def _log_identified(self):
+        logger.success(f"Identified block: {next(reversed(self.blocks))}")
