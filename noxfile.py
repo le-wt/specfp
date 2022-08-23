@@ -24,6 +24,6 @@ def type(session):
 @nox.session(python=python)
 def test(session):
     """Run the test suite for code coverage."""
-    args = session.posargs or ["--cov"]
+    args = session.posargs or ["--cov", "-m", "integration"]
     session.run("poetry", "install", external=True)
     session.run("pytest", *args)

@@ -7,13 +7,6 @@ import construct
 import pytest
 
 
-@pytest.fixture
-def wdf_stream():
-    """A sample WDF file in the tests directory."""
-    with open("tests/WDF/single.wdf", "rb") as file:
-        yield file
-
-
 def test_filetime():
     """Microsoft Windows has their own representation of a UTC datetime."""
     time = datetime.now().replace(microsecond=0)
@@ -30,21 +23,21 @@ def test_filetime_adapter():
 class TestWDF:
     """Read a WDF (.wdf) file."""
 
+    @pytest.mark.integration
     def test_WDF1(self, wdf_stream):
         """All WDF files start with a WDF1 header block."""
-        decoder = decoders.wdf.Block.WDF1.value
-        block = decoder.parse_stream(wdf_stream)
+        block = decoders.wdf.Block.WDF1.value.parse_stream(wdf_stream)
         assert block.header.size == 512
 
+    @pytest.mark.integration
     def test_DATA(self, wdf_stream):
         """WDF files usually have a DATA block after the WDF1 block."""
-        self.test_WDF1(wdf_stream)
-        decoder = decoders.wdf.Block.DATA.value
-        decoder.parse_stream(wdf_stream)
+        decoders.wdf.Block.WDF1.value.parse_stream(wdf_stream)
+        decoders.wdf.Block.DATA.value.parse_stream(wdf_stream)
 
+    @pytest.mark.integration
     def test_optional_blocks(self, wdf_stream):
         """All subsequent blocks are have their size encoded in bytes."""
-        self.test_DATA(wdf_stream)
         decoder = decoders.wdf.Default()
         while True:
             try:
