@@ -71,7 +71,17 @@ def Default(
 
 
 class Block(enum.Enum):
-    """Decoding information for each WDF block type."""
+    r"""Decoding information for each WDF block type.
+
+    This information is useful to encode a dict containing the corresponding
+    data into bytes, essentially allowing writing WDF files.
+
+    Examples:
+        >>> block = Block.DATA.value
+        >>> header = {'magic': b'DATA', 'padding': '', 'uid': 0, 'size': 16}
+        >>> bytes(block.build({'header': header, 'spectra': [], 'unused': ''}))
+        b'DATA\x00\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00'
+    """
 
     WDF1 = construct.Struct(
         "header"            / Header(b"WDF1"),
