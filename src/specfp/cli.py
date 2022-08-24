@@ -39,7 +39,7 @@ def convert(
             "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> "
             "| <level>{level: <8}</level> "
             "| <level>{message}</level>"))
-    spectra = decoders.load(urlpath)
+    spectra = decoders.load(urlpath).T
     if output:
         output.parent.mkdir(parents=True, exist_ok=True)
         spectra.to_csv(output)
@@ -47,4 +47,4 @@ def convert(
         pd.set_option('display.max_rows', None)
         pd.set_option('display.max_columns', None)
         pd.set_option('display.width', None)
-        print(spectra.T)
+        print(spectra)
