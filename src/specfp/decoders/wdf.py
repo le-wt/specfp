@@ -14,9 +14,6 @@ import numpy as np
 import transitions
 
 
-Unused = construct.Computed(construct.Byte[this.header.size - this._sizing])
-
-
 class FiletimeAdapter(construct.Adapter):
     """Adapt between Microsoft Windows File-time and UTC datetime."""
 
@@ -66,13 +63,30 @@ def Default(
     """
     header = Header(magic)
     if dynamic:
-        data = type[this._.size]
+        return construct.Struct(
+            "header" / header,
+            "payload" / type[this._.size],
+            "unused" / construct.Byte[
+                this.header.size
+                - header.sizeof()
+                - this._.size * type.sizeof()])
     else:
-        data = type[(this.header.size - header.sizeof()) // type.sizeof()]
+        return construct.Struct(
+            "header" / header,
+            "payload" / type[
+                (this.header.size - header.sizeof())
+                // type.sizeof()])
+
+
+def AXIS(magic: bytes | None = None) -> construct.Construct:
+    header = Header(magic)
     return construct.Struct(
         "header" / header,
-        "payload" / data,
-        "unused" / Unused)
+        "type" / construct.Int32ul,
+        "unit" / construct.Int32ul,
+        "domain" / construct.Float32l[this._.size],
+        "unused" / construct.Byte[
+            this.header.size - header.sizeof() - (2 + this._.size) * 4])
 
 
 class Block(enum.Enum):
@@ -82,10 +96,10 @@ class Block(enum.Enum):
     data into bytes, essentially allowing writing WDF files.
 
     Examples:
-        >>> block = Block.DATA.value
-        >>> header = {'magic': b'DATA', 'padding': '', 'uid': 0, 'size': 16}
-        >>> bytes(block.build({'header': header, 'spectra': [], 'unused': ''}))
-        b'DATA\x00\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00'
+        >>> block = Block.TEXT.value
+        >>> header = {'magic': b'TEXT', 'padding': '', 'uid': 0, 'size': 16}
+        >>> bytes(block.build({'header': header, 'payload': []}))
+        b'TEXT\x00\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00'
     """
 
     WDF1 = construct.Struct(
@@ -122,18 +136,8 @@ class Block(enum.Enum):
         "third_party"       / construct.Int64ul[0x4],
         "internal_use"      / construct.Int64ul[0x4])
     DATA = Default(b"DATA", type=construct.Float32l, dynamic=True)
-    YLST = construct.Struct(
-        "header"            / Header(b"YLST"),
-        "type"              / construct.Int32ul,
-        "unit"              / construct.Int32ul,
-        "domain"            / construct.Float32l[this._.size],
-        "unused"            / Unused)
-    XLST = construct.Struct(
-        "header"            / Header(b"XLST"),
-        "type"              / construct.Int32ul,
-        "unit"              / construct.Int32ul,
-        "domain"            / construct.Float32l[this._.size],
-        "unused"            / Unused)
+    YLST = AXIS(b"YLST")
+    XLST = AXIS(b"XLST")
     ORGN = Default(b"ORGN") * "Origin"
     TEXT = Default(b"TEXT") * "Comment"
     WXDA = Default(b"WXDA") * "Wire data"
