@@ -49,44 +49,33 @@ def Header(magic: bytes | None = None) -> construct.Construct:
 def Default(
         magic: bytes | None = None,
         type: construct.Construct = construct.Byte,
-        dynamic: bool = False,
 ) -> construct.Construct:
     """Construct a default block decoder with a length 4 magic string.
 
     Args:
         magic: a length 4 ascii-encoded string that identifies the block type.
         type: the data type encoding of the block's payload.
-        dynamic: set to require passing a "size" parameter at parsing time.
 
     Returns:
         a byte stream decoder.
     """
     header = Header(magic)
-    if dynamic:
-        return construct.Struct(
-            "header" / header,
-            "payload" / type[this._.size],
-            "unused" / construct.Byte[
-                this.header.size
-                - header.sizeof()
-                - this._.size * type.sizeof()])
-    else:
-        return construct.Struct(
-            "header" / header,
-            "payload" / type[
-                (this.header.size - header.sizeof())
-                // type.sizeof()])
+    length = (this.header.size - header.sizeof()) // type.sizeof()
+    return construct.Struct(
+        "header" / header,
+        "payload" / type[length])
 
 
 def AXIS(magic: bytes | None = None) -> construct.Construct:
+    """Construct a block decoder for x and y axis data (XLST or YLST)."""
     header = Header(magic)
+    length = this.header.size - header.sizeof() - (2 + this._.size) * 4
     return construct.Struct(
         "header" / header,
         "type" / construct.Int32ul,
         "unit" / construct.Int32ul,
         "domain" / construct.Float32l[this._.size],
-        "unused" / construct.Byte[
-            this.header.size - header.sizeof() - (2 + this._.size) * 4])
+        "unused" / construct.Byte[length])
 
 
 class Block(enum.Enum):
@@ -135,7 +124,12 @@ class Block(enum.Enum):
         "padded"            / construct.Int64ul[0x6],
         "third_party"       / construct.Int64ul[0x4],
         "internal_use"      / construct.Int64ul[0x4])
-    DATA = Default(b"DATA", type=construct.Float32l, dynamic=True)
+    DATA = construct.Struct(
+            "header" / Header(b"DATA"),
+            "payload" / construct.Float32l[this._.size],
+            "unused" / construct.Byte[lambda this: this.header.size
+                - this._subcons.header.sizeof()
+                - this._.size * construct.Float32l.sizeof()])
     YLST = AXIS(b"YLST")
     XLST = AXIS(b"XLST")
     ORGN = Default(b"ORGN") * "Origin"
