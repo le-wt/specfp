@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "specfp"
-version = "0.0.0"
+version = "0.1.0"
 description = "Spectroscopy band fingerprinting."
 authors = ["William T. Le <william.le@posteo.ca>"]
 maintainers = ["William T. Le <william.le@posteo.ca>"]

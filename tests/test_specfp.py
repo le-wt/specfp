@@ -8,7 +8,7 @@ import tempfile
 
 def test_version():
     """Double check package version."""
-    assert __version__ == "0.0.0"
+    assert __version__ == "0.1.0"
 
 
 @pytest.mark.integration
