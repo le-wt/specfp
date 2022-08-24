@@ -1,5 +1,6 @@
 """Configure pytest marks and global fixtures."""
 
+import click.testing
 import pytest
 
 
@@ -8,6 +9,12 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "integration: mark as using live resources.")
+
+
+@pytest.fixture
+def CLI():
+    """Runner for the click CLI."""
+    return click.testing.CliRunner()
 
 
 @pytest.fixture

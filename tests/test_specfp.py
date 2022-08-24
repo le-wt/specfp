@@ -2,18 +2,18 @@
 
 from specfp import __version__, cli
 
-import click.testing
 import pytest
-
-
-@pytest.fixture
-def CLI():
-    """Runner for the click CLI."""
-    return click.testing.CliRunner()
+import tempfile
 
 
 def test_version():
-    """Ensure that the package version matches the pyproject version."""
+    """Double check package version"""
+    assert __version__ == "0.0.0"
+
+
+@pytest.mark.integration
+def test_version_pyproject():
+    """Package version should match the pyproject version."""
     with open("pyproject.toml", "r") as file:
         for line in file:
             parts = line.split()
@@ -22,9 +22,28 @@ def test_version():
                 break
         else:
             raise ValueError("Couldn't find version in pyproject.toml")
-    assert __version__ == version == "0.0.0"
+    assert __version__ == version
 
 
-def test_cli(CLI):
-    """Invoke the CLI without an error code."""
-    assert CLI.invoke(cli.main).exit_code == 0
+class TestCLI:
+    """A command-line interface for invoking various utilities."""
+
+    def test_help(self, CLI):
+        """Invoke the CLI without an error code."""
+        assert CLI.invoke(cli.main).exit_code == 0
+        assert CLI.invoke(cli.convert).exit_code == 2
+
+    @pytest.mark.integration
+    def test_convert(self, CLI):
+        """Invoke the convert command on valid and invalid WDF files."""
+        convert = CLI.invoke(
+                cli.convert,
+                ["tests/WDF/empty.wdf", "-q"])
+        assert convert.exit_code == 1
+        cmd = ["tests/WDF/single.wdf"]
+        convert = CLI.invoke(cli.convert, cmd)
+        assert convert.exit_code == 0
+        with tempfile.TemporaryDirectory() as tmp:
+            cmd.extend(["-o", f"{tmp}/output.csv"])
+            convert = CLI.invoke(cli.convert, cmd)
+            assert convert.exit_code == 0
