@@ -209,7 +209,7 @@ class WDF:
         self.machine = transitions.Machine(
             states=[block.name for block in Block],
             prepare_event="_identify",
-            after_state_change="_log_decoded",
+            after_state_change="_log",
             auto_transitions=False,
             queued=True,
             model=self)
@@ -223,7 +223,6 @@ class WDF:
             self.machine.add_transition(
                 "decode",
                 conditions=self.identified(block.name),
-                before="_log_identified",
                 source=list(self.machine.states),
                 dest=block.name,
                 after="decode")
@@ -258,6 +257,9 @@ class WDF:
         """Peek at the next 4 bytes of the stream to identify the block."""
         magic = construct.Peek(Header().magic).parse_stream(self.stream)
         self.blocks[magic] = None
+        logger.log(
+            "SUCCESS" if magic in self.machine.states else "WARNING",
+            f"Identified block: {magic}")
 
     def _decode(self):
         """Decode a single WDF block's header and payload from the stream."""
@@ -270,14 +272,10 @@ class WDF:
             ctx["size"] = metadata.count * metadata.points
         self.blocks[self.state] = decoder.parse_stream(self.stream, **ctx)
 
-    def _log_decoded(self):
+    def _log(self):
         """Log the current decoded block information."""
-        block = self.blocks[self.state]
-        block_size = block.header.size
+        block_size = self.blocks[self.state].header.size
         header_size = self.decoders[self.state].header.sizeof()
-        payload_size = block_size - header_size
-        logger.info(f"Decoded block: {self.state}"
-                    f"(payload = {payload_size}/{block_size} bytes)")
-
-    def _log_identified(self):
-        logger.success(f"Identified block: {next(reversed(self.blocks))}")
+        logger.info(
+            f"Decoded block: {self.state}"
+            f"(payload = {block_size - header_size}/{block_size} bytes)")
