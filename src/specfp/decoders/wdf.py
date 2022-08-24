@@ -3,14 +3,13 @@
 from __future__ import annotations
 from construct import this
 from loguru import logger
-from typing import Callable
+from typing import Callable, BinaryIO
 from .. import converters as to
 
 import attrs
 import collections
 import construct
 import enum
-import fsspec
 import numpy as np
 import transitions
 
@@ -182,14 +181,13 @@ class WDF:
     its payload.
 
     Args:
-        urlpath: the WDF local or remote file path.
+        stream: the WDF local or remote file path or opened binary stream.
 
     Methods:
         decode: decode all of the detected WDF blocks.
         close: close the opened WDF bitstream.
 
     Attributes:
-        stream: the currently opened bitstream.
         blocks: an ordered mapping of block name to decoded data.
         decoders: an ordered mapping of block name to the decoding construct.
         states: the available decoding states (registered block decoders).
@@ -204,7 +202,7 @@ class WDF:
         ['WDF1', 'DATA']
     """
 
-    urlpath: str
+    stream: str | BinaryIO = attrs.field(converter=to.bitstream)
 
     def __attrs_pre_init__(self):
         """Initialize the Finite State Machine controller."""
@@ -219,7 +217,6 @@ class WDF:
         """Open the WDF bitstream and configure the state transitions."""
         self.blocks = collections.OrderedDict()
         self.decoders = collections.OrderedDict()
-        self.stream = fsspec.open(self.urlpath, mode="rb").open()
         self.close = self.stream.close
         for block in Block:
             self.machine.add_transition(
