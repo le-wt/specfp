@@ -4,6 +4,7 @@ from datetime import datetime
 from specfp import decoders, converters
 
 import construct
+import io
 import pytest
 
 
@@ -23,22 +24,30 @@ def test_filetime_adapter():
 class TestWDF:
     """Read a WDF (.wdf) file."""
 
-    @pytest.mark.integration
-    def test_WDF1(self, wdf_stream):
-        """All WDF files start with a WDF1 header block."""
-        block = decoders.wdf.Block.WDF1.value.parse_stream(wdf_stream)
-        assert block.header.size == 512
+    def test_urlpath(self):
+        decoders.wdf.WDF(io.BytesIO(b""))
+
+    def test_decoding(self):
+        data = b"TEXT\x00\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00"
+        decoder = decoders.wdf.WDF(io.BytesIO(data))
+        decoder.decode()
+        assert "TEXT" in decoder.blocks
+
+    def test_missing_blocks(self):
+        decoder = decoders.wdf.WDF(io.BytesIO(b""))
+        with pytest.raises(RuntimeError):
+            decoder.spectra
+        with pytest.raises(RuntimeError):
+            decoder.wavelengths
+        decoder.decode()
+        with pytest.raises(AttributeError):
+            decoder.spectra
+        with pytest.raises(AttributeError):
+            decoder.wavelengths
 
     @pytest.mark.integration
-    def test_DATA(self, wdf_stream):
-        """WDF files usually have a DATA block after the WDF1 block."""
-        block = decoders.wdf.Block.WDF1.value.parse_stream(wdf_stream)
-        size = block.count * block.points
-        decoders.wdf.Block.DATA.value.parse_stream(wdf_stream, size=size)
-
-    @pytest.mark.integration
-    def test_optional_blocks(self, wdf_stream):
-        """All subsequent blocks are have their size encoded in bytes."""
+    def test_raw(self, wdf_stream):
+        """The entire file can be decoded as a series of byte blocks."""
         decoder = decoders.wdf.Default()
         while True:
             try:
@@ -47,6 +56,51 @@ class TestWDF:
                 break
             else:
                 decoders.wdf.Block[block.header.magic]
+
+    @pytest.mark.integration
+    def test_file_blocks(self, wdf_stream):
+        """WDF contain at minium a WDF1, a DATA, a YLST and an XLST block."""
+        decoder = decoders.wdf.Block.WDF1.value
+        WDF1 = decoder.parse_stream(wdf_stream)
+        assert WDF1.header.size == 512
+        decoder = decoders.wdf.Block.DATA.value
+        size = WDF1.count * WDF1.points
+        DATA = decoder.parse_stream(wdf_stream, size=size)
+        assert size == len(DATA.payload)
+        payload = decoder.payload.subcon.subcon.sizeof() * size
+        unused = len(DATA.unused)
+        header = decoder.header.sizeof()
+        assert DATA.header.size == header + payload + unused
+        decoder = decoders.wdf.Block.YLST.value
+        size = WDF1.YLST
+        YLST = decoder.parse_stream(wdf_stream, size=size)
+        decoder = decoders.wdf.Block.XLST.value
+        size = WDF1.XLST
+        XLST = decoder.parse_stream(wdf_stream, size=size)
+        assert len(XLST.domain) == WDF1.points
+
+    @pytest.mark.integration
+    def test_file_decoder(self, wdf_stream):
+        """A higher level API for extracting spectra from WDF files."""
+        decoder = decoders.wdf.WDF(wdf_stream)
+        decoder.decode()
+        assert decoder.spectra.shape[1] == len(decoder.wavelengths)
+
+    def test_partial_block(self):
+        """Decoder should not fail if encountering a partial block."""
+        data = b"TEXT\x00\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00"
+        decoder = decoders.wdf.WDF(io.BytesIO(data[:2]))
+        decoder.decode()
+        decoder = decoders.wdf.WDF(io.BytesIO(data[:-1]))
+        with pytest.raises(construct.core.StreamError):
+            decoder.decode()
+
+    @pytest.mark.integration
+    def test_file_loader(self, wdf_stream):
+        """A generic API for extracting spectra from spectroscopy files."""
+        spectra = decoders.load(wdf_stream)
+        assert spectra.index.name == "spectrum"
+        assert spectra.shape == (10, 1021)
 
     @pytest.mark.integration
     def test_build(self, wdf_stream):
