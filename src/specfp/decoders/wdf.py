@@ -208,6 +208,7 @@ class WDF:
         """Initialize the Finite State Machine controller."""
         self.machine = transitions.Machine(
             states=[block.name for block in Block],
+            prepare_event="_identify",
             after_state_change="_log_decoded",
             auto_transitions=False,
             queued=True,
@@ -221,7 +222,6 @@ class WDF:
         for block in Block:
             self.machine.add_transition(
                 "decode",
-                prepare="_identify",
                 conditions=self.identified(block.name),
                 before="_log_identified",
                 source=list(self.machine.states),
