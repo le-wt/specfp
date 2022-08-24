@@ -231,13 +231,25 @@ class WDF:
     @property
     def spectra(self) -> np.ndarray:
         """One or more Raman shift points data (cm-1)."""
-        shape = self.blocks["WDF1"].count, self.blocks["WDF1"].points
-        return np.reshape(self.blocks["DATA"].payload, shape)
+        if not len(self.blocks):
+            raise RuntimeError(
+                    "Unprocessed input stream, hint: call decode() first!")
+        try:
+            shape = self.blocks["WDF1"].count, self.blocks["WDF1"].points
+            return np.reshape(self.blocks["DATA"].payload, shape)
+        except KeyError:
+            raise AttributeError("Missing DATA/WDF1 blocks, spectra not found")
 
     @property
     def wavelengths(self) -> np.ndarray:
         """The x-axis of the spectral measurements (nm)."""
-        return np.array(self.blocks["XLST"].domain)
+        if not len(self.blocks):
+            raise RuntimeError(
+                    "Unprocessed input stream, hint: call decode() first!")
+        try:
+            return np.array(self.blocks["XLST"].domain)
+        except KeyError:
+            raise AttributeError("Missing XLST blocks, wavelengths not found")
 
     def identified(self, block: str) -> Callable[[], bool]:
         """Return a thunk that checks what the next block is to be decoded.
@@ -265,11 +277,12 @@ class WDF:
         """Decode a single WDF block's header and payload from the stream."""
         self.decoders[self.state] = decoder = Block[self.state].value
         ctx = {}
-        metadata = self.blocks["WDF1"]
-        if self.state in ("XLST", "YLST"):
-            ctx["size"] = metadata[self.state]
-        elif self.state == "DATA":
-            ctx["size"] = metadata.count * metadata.points
+        if "WDF1" in self.blocks:
+            metadata = self.blocks["WDF1"]
+            if self.state in ("XLST", "YLST"):
+                ctx["size"] = metadata[self.state]
+            elif self.state == "DATA":
+                ctx["size"] = metadata.count * metadata.points
         self.blocks[self.state] = decoder.parse_stream(self.stream, **ctx)
 
     def _log(self):
