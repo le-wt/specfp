@@ -7,7 +7,7 @@ import tempfile
 
 
 def test_version():
-    """Double check package version"""
+    """Double check package version."""
     assert __version__ == "0.0.0"
 
 
@@ -37,8 +37,8 @@ class TestCLI:
     def test_convert(self, CLI):
         """Invoke the convert command on valid and invalid WDF files."""
         convert = CLI.invoke(
-                cli.convert,
-                ["tests/WDF/empty.wdf", "-q"])
+            cli.convert,
+            ["tests/WDF/empty.wdf", "-q"])
         assert convert.exit_code == 1
         cmd = ["tests/WDF/single.wdf"]
         convert = CLI.invoke(cli.convert, cmd)

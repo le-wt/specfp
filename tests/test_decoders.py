@@ -25,15 +25,18 @@ class TestWDF:
     """Read a WDF (.wdf) file."""
 
     def test_urlpath(self):
+        """WDF can also accept an already opened file stream."""
         decoders.wdf.WDF(io.BytesIO(b""))
 
     def test_decoding(self):
+        """Success is decoding a single block."""
         data = b"TEXT\x00\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00"
         decoder = decoders.wdf.WDF(io.BytesIO(data))
         decoder.decode()
         assert "TEXT" in decoder.blocks
 
     def test_missing_blocks(self):
+        """Without a DATA block, spectra cannot be returned."""
         decoder = decoders.wdf.WDF(io.BytesIO(b""))
         with pytest.raises(RuntimeError):
             decoder.spectra
@@ -73,7 +76,7 @@ class TestWDF:
         assert DATA.header.size == header + payload + unused
         decoder = decoders.wdf.Block.YLST.value
         size = WDF1.YLST
-        YLST = decoder.parse_stream(wdf_stream, size=size)
+        decoder.parse_stream(wdf_stream, size=size)
         decoder = decoders.wdf.Block.XLST.value
         size = WDF1.XLST
         XLST = decoder.parse_stream(wdf_stream, size=size)

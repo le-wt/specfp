@@ -125,11 +125,12 @@ class Block(enum.Enum):
         "third_party"       / construct.Int64ul[0x4],
         "internal_use"      / construct.Int64ul[0x4])
     DATA = construct.Struct(
-            "header" / Header(b"DATA"),
-            "payload" / construct.Float32l[this._.size],
-            "unused" / construct.Byte[lambda this: this.header.size
-                - this._subcons.header.sizeof()
-                - this._.size * construct.Float32l.sizeof()])
+        "header" / Header(b"DATA"),
+        "payload" / construct.Float32l[this._.size],
+        "unused" / construct.Byte[
+            lambda this: this.header.size
+            - this._subcons.header.sizeof()
+            - this._.size * construct.Float32l.sizeof()])
     YLST = AXIS(b"YLST")
     XLST = AXIS(b"XLST")
     ORGN = Default(b"ORGN") * "Origin"
@@ -230,8 +231,8 @@ class WDF:
     def spectra(self) -> np.ndarray:
         """One or more Raman shift points data (cm-1)."""
         if not len(self.blocks):
-            raise RuntimeError(
-                    "Unprocessed input stream, hint: call decode() first!")
+            error = "Unprocessed input stream, hint: call decode() first!"
+            raise RuntimeError(error)
         try:
             shape = self.blocks["WDF1"].count, self.blocks["WDF1"].points
             return np.reshape(self.blocks["DATA"].payload, shape)
@@ -242,8 +243,8 @@ class WDF:
     def wavelengths(self) -> np.ndarray:
         """The x-axis of the spectral measurements (nm)."""
         if not len(self.blocks):
-            raise RuntimeError(
-                    "Unprocessed input stream, hint: call decode() first!")
+            error = "Unprocessed input stream, hint: call decode() first!"
+            raise RuntimeError(error)
         try:
             return np.array(self.blocks["XLST"].domain)
         except KeyError:
