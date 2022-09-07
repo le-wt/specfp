@@ -7,7 +7,6 @@ from . import __version__, decoders
 
 import click
 import pandas as pd
-import sys
 
 
 @click.group()
@@ -27,19 +26,7 @@ def convert(
         verbose: int = 0,
         quiet: bool = False):
     """Convert a WDF spectroscopy file."""
-    if quiet:
-        level = 40
-    else:
-        level = max(25 - verbose * 10, 0)
-    logger.remove()
-    logger.add(
-        sys.stderr,
-        level=level,
-        format=(
-            "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> "
-            "| <level>{level: <8}</level> "
-            "| <level>{message}</level>"))
-    spectra = decoders.load(urlpath).T
+    spectra = decoders.load(urlpath, verbose=0 if quiet else verbose + 1).T
     if output:
         output.parent.mkdir(parents=True, exist_ok=True)
         spectra.to_csv(output)
