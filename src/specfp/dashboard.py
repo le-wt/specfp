@@ -6,8 +6,10 @@ from dash import Dash, dcc, html, Input, Output, State
 import base64
 import io
 import numpy as np
+import os
 import pandas as pd
 import plotly.express as px
+import redis
 
 
 def Upload(id, multiple: bool = False):
@@ -26,6 +28,10 @@ def Upload(id, multiple: bool = False):
     return dcc.Upload(id=id, children=text, style=style, multiple=multiple)
 
 
+# Database configuration
+db = redis.Redis(port=6379, password=os.environ["REDIS_AUTH"])
+
+
 # Dashboard configuration
 app = Dash(__name__)
 
@@ -38,14 +44,15 @@ header = html.Header([
 
 # Fetching user inputs spectroscopy data
 nav = html.Section([
-    Upload(id="upload-spectra", multiple=True),
-    dcc.Dropdown(id="uploaded-files", multi=True),
+    Upload(id="files-upload", multiple=True),
+    dcc.Dropdown(id="files-dropdown", multi=True),
     dcc.Checklist(
-        id="preprocessing",
+        id="preprocessing-checklist",
         options=["Cosmic Ray Removal", "Savgol", "Raman", "SNV"], 
         value=["Raman"]),
-    html.Button("Load spectra from selected files", id="load-button"),
-])
+    html.Button(
+        "Load spectra from selected files",
+        id="preprocessing-transform")])
 
 
 # Dashboard HTML
@@ -57,12 +64,14 @@ app.layout = html.Main([
 
 
 @app.callback(
-        Output("uploaded-files", "options"),
-        Output("uploaded-files", "value"),
-        Input("upload-spectra", "filename"),
-        State("uploaded-files", "options"),
-        State("uploaded-files", "value"))
-def select_spectra(filenames, options, value):
-    if filenames:
-        return sorted(set(options) | set(filenames)), sorted(set(value) | set(filenames))
-    return [], []
+        Output("files-dropdown", "options"),
+        Output("files-dropdown", "value"),
+        Input("files-upload", "contents"),
+        State("files-upload", "filename"),
+        State("files-dropdown", "value"))
+def select_spectra(contents, filenames, value):
+    if contents and filename:
+        db.hmset("spectrum", dict(zip(filenames, contents)))
+        value = sorted(set(value) | set(filenames))
+    options = sorted(filename.decode("ascii") for filename in db.hkeys("spectrum"))
+    return options, value
