@@ -6,7 +6,7 @@ authors = ["William T. Le <william.le@posteo.ca>"]
 maintainers = ["William T. Le <william.le@posteo.ca>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.8,<3.12"
 numpy = "^1.23.2"
 pandas = "^1.4.3"
 click = "^8.1.3"
@@ -17,6 +17,9 @@ loguru = "^0.6.0"
 transitions = "^0.8.11"
 aenum = "^3.1.11"
 tqdm = "^4.64.0"
+plotly = "^5.10.0"
+dash = "^2.6.1"
+scipy = "^1.9.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
