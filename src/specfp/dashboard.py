@@ -45,10 +45,14 @@ header = html.Header([
 # Fetching user inputs spectroscopy data
 nav = html.Section([
     Upload(id="files-upload", multiple=True),
-    dcc.Dropdown(id="files-dropdown", multi=True),
+    dcc.Dropdown(
+        id="files-dropdown",
+        persistence=True,
+        multi=True),
     dcc.Checklist(
         id="preprocessing-checklist",
         options=["Cosmic Ray Removal", "Savgol", "Raman", "SNV"], 
+        persistence=True,
         value=["Raman"]),
     html.Button(
         "Load spectra from selected files",
@@ -65,13 +69,10 @@ app.layout = html.Main([
 
 @app.callback(
         Output("files-dropdown", "options"),
-        Output("files-dropdown", "value"),
         Input("files-upload", "contents"),
-        State("files-upload", "filename"),
-        State("files-dropdown", "value"))
-def select_spectra(contents, filenames, value):
+        State("files-upload", "filename"))
+def select_spectra(contents, filenames):
     if contents and filename:
         db.hmset("spectrum", dict(zip(filenames, contents)))
-        value = sorted(set(value) | set(filenames))
     options = sorted(filename.decode("ascii") for filename in db.hkeys("spectrum"))
-    return options, value
+    return options
