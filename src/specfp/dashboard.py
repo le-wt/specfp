@@ -33,7 +33,10 @@ db = redis.Redis(port=6379, password=os.environ["REDIS_AUTH"])
 
 
 # Dashboard configuration
-app = Dash(__name__)
+app = Dash(
+        __name__,
+        external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
+
 
 
 # Title and description of the dashboard
