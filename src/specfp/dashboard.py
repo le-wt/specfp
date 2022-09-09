@@ -161,14 +161,6 @@ def load_spectra(_, filenames, preprocessing, cache, data):
     return cache
 
 
-# @app.callback(
-#         Output("spectra-graph", "figure"),
-#         Input("cache", "data"))
-# def plot_spectra(cache):
-#     df = pd.read_json(cache["spectra"])
-#     return plot(df)
-
-
 @app.callback(
         Output("spectra-bands", "options"),
         Output("spectra-bands", "value"),
@@ -177,7 +169,7 @@ def load_spectra(_, filenames, preprocessing, cache, data):
         Input("spectra-graph", "selectedData"),
         Input("spectra-bands", "options"),
         Input("spectra-bands", "value"))
-def select_bands(cache, selectedData, options, value):
+def plot_spectra(cache, selectedData, options, value):
     if "spectra" not in cache:
         raise PreventUpdate
     df = pd.read_json(cache["spectra"]).sort_index()
