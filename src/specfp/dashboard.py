@@ -161,12 +161,38 @@ def load_spectra(_, filenames, preprocessing, cache, data):
     return cache
 
 
+# @app.callback(
+#         Output("spectra-graph", "figure"),
+#         Input("cache", "data"))
+# def plot_spectra(cache):
+#     df = pd.read_json(cache["spectra"])
+#     return plot(df)
+
+
 @app.callback(
+        Output("spectra-bands", "options"),
+        Output("spectra-bands", "value"),
         Output("spectra-graph", "figure"),
-        Input("cache", "data"))
-def plot_spectra(cache):
-    df = pd.read_json(cache["spectra"])
-    return plot(df)
+        Input("cache", "data"),
+        Input("spectra-graph", "selectedData"),
+        Input("spectra-bands", "options"),
+        Input("spectra-bands", "value"))
+def select_bands(cache, selectedData, options, value):
+    if "spectra" not in cache:
+        raise PreventUpdate
+    df = pd.read_json(cache["spectra"]).sort_index()
+    if selectedData and "range" in selectedData:
+        lower, upper = map(int, selectedData["range"]["x"])
+        band = df.loc[lower:upper]
+        points = band.to_numpy()
+        x, y = np.unravel_index(np.argmax(points), points.shape)
+        wavelength = band.iloc[x].name
+        options = set(options)
+        options.add(wavelength)
+        value = set(value)
+        value.add(wavelength)
+        value = list(value)
+    return list(options), value, plot(df, vertical=value)
 
 
 def discretize(df: pd.DataFrame, copy: bool = False) -> pd.DataFrame:
@@ -180,11 +206,12 @@ def discretize(df: pd.DataFrame, copy: bool = False) -> pd.DataFrame:
     return df
 
 
-def plot(df):
-    labels={'value': 'Absorption',
-            'wavelength': 'Wavelength (nm)',
-            'variable': 'Acquisition'}
-    fig = px.line(df, labels=labels, hover_name="variable")
+def plot(df, vertical: list[int] | None = None):
+    fig = px.line(df)
+    for coord in (vertical or ()):
+        fig.add_vline(x=coord, line_dash="dot")
+    fig.update_traces(
+            hovertemplate=None)
     fig.update_layout(
             dragmode="select",
             showlegend=False,
