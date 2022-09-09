@@ -10,7 +10,12 @@ import numpy as np
 import os
 import pandas as pd
 import plotly.express as px
-import redis
+
+try:
+    import redis
+    db = redis.Redis(port=6379, password=os.environ["REDIS_AUTH"])
+except ModuleNotFoundError:
+    db = None
 
 
 def Upload(id, multiple: bool = False):
@@ -27,10 +32,6 @@ def Upload(id, multiple: bool = False):
         'textAlign': 'center',
         'margin': '10px'}
     return dcc.Upload(id=id, children=text, style=style, multiple=multiple)
-
-
-# Database configuration
-db = redis.Redis(port=6379, password=os.environ["REDIS_AUTH"])
 
 
 # Dashboard configuration
@@ -51,6 +52,7 @@ nav = html.Section([
     Upload(id="files-upload", multiple=True),
     dcc.Dropdown(
         id="files-dropdown",
+        value=[],
         persistence=True,
         multi=True),
     dcc.Checklist(
@@ -64,7 +66,12 @@ nav = html.Section([
 
 figure = html.Div(id="spectra", children=[
     dcc.Graph(id="spectra-graph"),
-    dcc.Dropdown(id="spectra-bands", value=[], persistence=True, multi=True),
+    dcc.Dropdown(
+        id="spectra-bands",
+        options=[],
+        value=[],
+        persistence=True,
+        multi=True),
 ])
 
 
@@ -73,18 +80,35 @@ app.layout = html.Main([
     header,
     nav,
     figure,
+    dcc.Store(id="cache", data={}),
+    dcc.Store(id="db", data={}),
 ])
 
 
 @app.callback(
         Output("files-dropdown", "options"),
+        Output("files-dropdown", "value"),
+        Output("db", "data"),
         Input("files-upload", "contents"),
-        State("files-upload", "filename"))
-def select_spectra(contents, filenames):
-    if contents and filename:
-        db.hmset("spectrum", dict(zip(filenames, contents)))
-    options = sorted(filename.decode("ascii") for filename in db.hkeys("spectrum"))
-    return options
+        State("files-upload", "filename"),
+        State("files-dropdown", "value"),
+        State("db", "data"))
+def select_spectra(contents, filenames, value, data):
+    if db is not None:
+        if contents and filenames:
+            db.hmset("spectrum", dict(zip(filenames, contents)))
+        options = sorted(filename.decode("ascii") for filename in db.hkeys("spectrum"))
+    else:
+        if contents and filenames:
+            for filename, content in zip(filenames, contents):
+                data[filename] = content
+        options = sorted(data)
+    if filenames:
+        if value is None:
+            value = filenames
+        else:
+            value.extend(filenames)
+    return options, value, data
 
 
 @app.callback(
