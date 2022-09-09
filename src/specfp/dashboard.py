@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from dash import Dash, dcc, html, Input, Output, State
+from dash.exceptions import PreventUpdate
 from . import __name__, decoders, raman_tools as raman
 
 import base64
@@ -116,24 +117,32 @@ def select_spectra(contents, filenames, value, data):
         Input("preprocessing-transform", "n_clicks"),
         State("files-dropdown", "value"),
         State("preprocessing-checklist", "value"),
-        State("cache", "data"))
-def load_spectra(_, filenames, preprocessing, cache):
+        State("cache", "data"),
+        State("db", "data"))
+def load_spectra(_, filenames, preprocessing, cache, data):
     if not filenames:
-        return {}
-    data = db.hgetall("spectrum")
+        raise PreventUpdate
+    if db is not None:
+        data = {filename.decode("ascii"): content
+                for filename, content in db.hgetall("spectrum")}
+    else:
+        data = {filename: content.encode("ascii")
+                for filename, content in data.items()}
     spectra = {}
     for filename, content in data.items():
-        filename = filename.decode("ascii")
+        payload = base64.b64decode(content.split(b",")[1])
         if not filename in filenames:
             continue
-        _, content = content.split(b",")
-        stream = io.BytesIO(base64.b64decode(content))
+        stream = io.BytesIO(payload)
         try:
             acquisitions = decoders.load(stream, verbose=0)
-        except AttributeError:
+        except AttributeError as err:
+            print(err)
             continue
         else:
             spectra[filename] = acquisitions.mean(axis=0)
+    if not spectra:
+        raise PreventUpdate
     df = discretize(pd.DataFrame(spectra).sort_index())
     df.index.name = "wavelength"
     if "Cosmic Ray Removal" in preprocessing:
