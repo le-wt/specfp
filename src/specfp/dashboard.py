@@ -41,7 +41,6 @@ app = Dash(
         external_stylesheets=['https://codepen.io/chriddyp/pen/bWLwgP.css'])
 
 
-
 # Title and description of the dashboard
 header = html.Header([
     html.H1(__name__),
@@ -82,7 +81,7 @@ app.layout = html.Main([
     nav,
     figure,
     dcc.Store(id="cache", data={}),
-    dcc.Store(id="db", data={}),
+    dcc.Store(id="db", data={}, storage_type="local"),
 ])
 
 
