@@ -144,18 +144,19 @@ def load_spectra(_, filenames, preprocessing, cache, data):
         raise PreventUpdate
     df = discretize(pd.DataFrame(spectra).sort_index())
     df.index.name = "wavelength"
-    if "Cosmic Ray Removal" in preprocessing:
-        df = df.apply(raman.cosmic_rays_removal, raw=True)
-    if "Savgol" in preprocessing:
-        df = df.apply(
-                raman.savgol_filter,
-                raw=True,
-                window_length=11,
-                polyorder=3)
-    if "Raman" in preprocessing:
-        df = df.apply(raman.bubblefill, raw=True)
-    if "SNV" in preprocessing:
-        df = df.apply(raman.SNV, raw=True)
+    for col in df.columns:
+        idx = df[col].notna()
+        if "Cosmic Ray Removal" in preprocessing:
+            df.loc[idx, col] = raman.cosmic_rays_removal(df.loc[idx, col])
+        if "Savgol" in preprocessing:
+            df.loc[idx, col] = raman.savgol_filter(
+                    df.loc[idx, col],
+                    window_length=11,
+                    polyorder=3)
+        if "Raman" in preprocessing:
+            df.loc[idx, col] = raman.bubblefill(df.loc[idx, col])
+        if "SNV" in preprocessing:
+            df.loc[idx, col] = raman.SNV(df.loc[idx, col])
     cache["spectra"] = str(df.to_json())
     return cache
 
